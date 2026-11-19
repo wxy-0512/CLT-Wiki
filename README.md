@@ -137,7 +137,7 @@
 
 ### GitHub Pages
 
-> **待補充**：本專案尚未發布至 GitHub Pages，部署後請在此填入對應的網址。
+> https://wxy-0512.github.io/CLT-Wiki/
 
 ---
 
