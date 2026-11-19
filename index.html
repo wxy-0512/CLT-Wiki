@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>中央極限定理：為什麼平均數會趨近常態分配？ | CLT-Wiki 教學簡報</title>
+
+  <!-- MathJax 3 配置設定 -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      },
+      startup: {
+        ready: () => {
+          MathJax.startup.defaultReady();
+          MathJax.startup.promise.then(() => {
+            console.log('MathJax 3 初始化完成並成功渲染公式。');
+            const banner = document.getElementById('mathjax-warning');
+            if (banner) banner.style.display = 'none';
+          });
+        }
+      }
+    };
+
+    function handleMathJaxError() {
+      const existing = document.getElementById('MathJax-script');
+      if (existing && !existing.dataset.fallbackTried) {
+        existing.dataset.fallbackTried = "true";
+        existing.remove();
+        console.warn('MathJax 主要 CDN 連線失敗，切換至備用 CDN (cdnjs)...');
+        const fallbackScript = document.createElement('script');
+        fallbackScript.id = 'MathJax-script';
+        fallbackScript.async = true;
+        fallbackScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js';
+        fallbackScript.onerror = () => {
+          showMathJaxWarning();
+        };
+        document.head.appendChild(fallbackScript);
+        return;
+      }
+      showMathJaxWarning();
+    }
+
+    function showMathJaxWarning() {
+      const banner = document.getElementById('mathjax-warning');
+      if (banner) banner.style.display = 'block';
+      console.warn('無法載入 MathJax 3 外部 CDN（處於離線狀態或網路受限）。');
+    }
+
+    setTimeout(() => {
+      if (!window.MathJax || !window.MathJax.typesetPromise) {
+        showMathJaxWarning();
+      }
+    }, 5000);
+  </script>
+  <!-- 載入 MathJax 3 核心腳本 -->
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" onerror="handleMathJaxError()"></script>
+
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-light: #3b82f6;
+      --accent: #0284c7;
+      --accent-warm: #d97706;
+      --success: #059669;
+      --danger: #dc2626;
+      --bg: #0b1120;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 頂部離線 / CDN 失敗警告橫幅 */
+    #mathjax-warning {
+      display: none;
+      background: #7f1d1d;
+      color: #fecaca;
+      padding: 8px 20px;
+      font-size: 0.85rem;
+      text-align: center;
+      border-bottom: 1px solid #b91c1c;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    /* 頂部導覽列 */
+    header {
+      background: rgba(30, 41, 59, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--card-border);
+      padding: 12px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .brand {
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: #60a5fa;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge {
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: #93c5fd;
+      font-size: 0.75rem;
+      padding: 3px 10px;
+      border-radius: 9999px;
+    }
+
+    .progress-info {
+      font-weight: 600;
+      color: #cbd5e1;
+      font-size: 0.95rem;
+      background: rgba(15, 23, 42, 0.7);
+      padding: 4px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--card-border);
+    }
+
+    /* 主區域：自然彈性捲動容器，徹底告別內容被切掉 */
+    main {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 32px 24px 48px;
+      overflow-y: auto;
+    }
+
+    /* 投影片卡片：寬敞大器、自然隨內容展開、不限制固定高度 */
+    .slide-card {
+      width: 100%;
+      max-width: 1060px;
+      min-height: 540px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 36px 44px;
+      box-shadow: 0 25px 35px -5px rgba(0, 0, 0, 0.5), 0 10px 15px -5px rgba(0, 0, 0, 0.3);
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .slide-card.active {
+      display: flex;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 頁首標題區 */
+    .slide-header {
+      border-bottom: 2px solid rgba(51, 65, 85, 0.8);
+      padding-bottom: 14px;
+    }
+
+    .slide-subtitle {
+      color: #38bdf8;
+      font-size: 0.88rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+
+    .slide-title {
+      font-size: 1.85rem;
+      color: #ffffff;
+      font-weight: 800;
+      line-height: 1.3;
+    }
+
+    /* 投影片主體 */
+    .slide-content {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* 頁尾資訊區 */
+    .slide-footer {
+      padding-top: 16px;
+      border-top: 1px dashed var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .source-tag a {
+      color: #38bdf8;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .source-tag a:hover {
+      text-decoration: underline;
+    }
+
+    /* 佈局容器元件 */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .info-box {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+
+    .info-box h3 {
+      color: #60a5fa;
+      font-size: 1.15rem;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .info-box p, .info-box li {
+      color: #cbd5e1;
+      font-size: 1rem;
+      line-height: 1.65;
+    }
+
+    .info-box ul {
+      padding-left: 22px;
+    }
+
+    .highlight-card {
+      background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(2, 132, 199, 0.15));
+      border: 1px solid #2563eb;
+    }
+
+    .warning-card {
+      background: linear-gradient(135deg, rgba(180, 83, 9, 0.25), rgba(15, 23, 42, 0.7));
+      border: 1px solid #d97706;
+    }
+
+    /* 數學公式呈現樣式 */
+    .math-block {
+      background: #090d16;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 14px 20px;
+      text-align: center;
+      font-size: 1.25rem;
+      color: #f1f5f9;
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+
+    mjx-container {
+      outline: none !important;
+      color: inherit;
+    }
+
+    .math-block mjx-container[display="true"] {
+      margin: 4px 0 !important;
+    }
+
+    /* 底部控制器列 */
+    footer {
+      background: rgba(30, 41, 59, 0.95);
+      border-top: 1px solid var(--card-border);
+      padding: 14px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      bottom: 0;
+      z-index: 20;
+    }
+
+    .nav-btn {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 9px 24px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .nav-btn:hover:not(:disabled) {
+      background: #1d4ed8;
+      transform: translateY(-1px);
+    }
+
+    .nav-btn:disabled {
+      background: #334155;
+      color: #64748b;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .keys-hint {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .kbd {
+      background: #334155;
+      padding: 2px 7px;
+      border-radius: 5px;
+      border: 1px solid #475569;
+      font-family: monospace;
+      font-size: 0.8rem;
+    }
+
+    /* 互動模擬專用樣式 */
+    .sim-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--card-border);
+      padding: 14px 22px;
+      border-radius: 12px;
+    }
+
+    .sim-btn-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .n-btn {
+      background: #334155;
+      color: #e2e8f0;
+      border: 1px solid #475569;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .n-btn.active {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: white;
+      box-shadow: 0 0 10px rgba(2, 132, 199, 0.5);
+    }
+
+    .action-btn {
+      background: #059669;
+      color: white;
+      border: none;
+      padding: 7px 18px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .action-btn:hover {
+      background: #047857;
+    }
+
+    .sim-layout {
+      display: grid;
+      grid-template-columns: 270px 1fr;
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .canvas-container {
+      background: #090d16;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .canvas-label {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      margin-bottom: 8px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .stat-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 6px;
+      font-size: 0.85rem;
+      margin-left: 6px;
+    }
+
+    .stat-badge strong {
+      color: #38bdf8;
+    }
+
+    /* 響應式排版 */
+    @media (max-width: 860px) {
+      .grid-2, .grid-3, .sim-layout {
+        grid-template-columns: 1fr;
+      }
+      .slide-card {
+        padding: 24px 20px;
+      }
+      .slide-title {
+        font-size: 1.45rem;
+      }
+      .keys-hint {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 離線 / CDN 失敗警告橫幅 -->
+  <div id="mathjax-warning">
+    ⚠️ <strong>注意</strong>：無法自外部 CDN 載入 MathJax 3 渲染引擎（目前可能處於離線狀態或網路受限）。數學公式將以原始語法顯示，請於連上網路後重新整理網頁以正常渲染。
+  </div>
+
+  <!-- 頂部資訊列 -->
+  <header>
+    <div class="brand">
+      <span>📐 CLT-Wiki</span>
+      <span class="badge">互動教學簡報</span>
+    </div>
+    <div class="progress-info" id="slideIndicator">第 1 / 13 頁</div>
+  </header>
+
+  <!-- 主區域：舒適大器、自然滾動、無拘束 -->
+  <main id="mainContainer">
+
+    <!-- 投影片 1：封面 -->
+    <section class="slide-card active" id="slide-1">
+      <div class="slide-header" style="border:none; text-align:center; padding-top:20px;">
+        <span class="badge" style="font-size:0.95rem; padding:4px 16px;">課程作業專案</span>
+        <h1 style="font-size:3rem; margin:24px 0 14px; color:#ffffff; font-weight:900; line-height:1.2;">
+          中央極限定理
+        </h1>
+        <p style="font-size:1.45rem; color:#38bdf8; font-weight:600;">
+          為什麼平均數會趨近常態分配？
+        </p>
+      </div>
+
+      <div class="slide-content" style="align-items:center; text-align:center;">
+        <div style="max-width:760px; background:rgba(15,23,42,0.7); padding:28px 36px; border-radius:14px; border:1px solid #334155;">
+          <p style="font-size:1.18rem; color:#cbd5e1; margin-bottom:18px; line-height:1.7;">
+            一場從「混亂母體」走向「鐘形秩序」的機率探索之旅。<br>
+            不論原始世界多麼偏斜，只要抽樣平均，規律終將浮現。
+          </p>
+          <div style="display:flex; justify-content:center; gap:20px; font-size:0.95rem; color:#94a3b8;">
+            <span>🎯 目標受眾：零統計基礎友善導引</span>
+            <span>•</span>
+            <span>📖 核心知識庫：CLT-Wiki</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="slide-footer">
+        <span>使用鍵盤左右方向鍵 <kbd class="kbd">←</kbd> <kbd class="kbd">→</kbd> 或下方按鈕切換</span>
+        <span class="source-tag">專案總綱：<a href="../README.md">README.md</a></span>
+      </div>
+    </section>
+
+    <!-- 投影片 2：現實世界的混亂與非對稱 -->
+    <section class="slide-card" id="slide-2">
+      <div class="slide-header">
+        <div class="slide-subtitle">01 / 直觀思考</div>
+        <h2 class="slide-title">思考起點：混亂且非常態的真實世界</h2>
+      </div>
+
+      <div class="slide-content">
+        <p style="font-size:1.08rem; color:#cbd5e1;">
+          在教科書中，我們經常看到完美的「常態分布（鐘形曲線）」。但如果你走出教室、觀察真實世界，你會發現：<strong>現實中的資料幾乎全都是「非常態」的！</strong>
+        </p>
+
+        <div class="grid-3">
+          <div class="info-box">
+            <h3>💰 極端偏態分布</h3>
+            <p>
+              例如<strong>國民財富所得</strong>或<strong>客服通話時間</strong>：絕大多數人在低所得或短通話區，但極少數「超級富豪」或「疑難客訴」拉出一條長長的右偏尾巴。
+            </p>
+          </div>
+
+          <div class="info-box">
+            <h3>🎲 均勻平坦分布</h3>
+            <p>
+              例如<strong>投擲一顆六面骰子</strong>：點數 1 到 6 的出現機率完全相同（各 1/6），直方圖是一條水平直線，中間完全沒有任何隆起。
+            </p>
+          </div>
+
+          <div class="info-box">
+            <h3>⚖️ 二元離散分布</h3>
+            <p>
+              例如<strong>拋硬幣的正反面</strong>、<strong>產線零件的合格與瑕疵</strong>：數值只有 0 與 1 兩種可能，根本沒有平滑曲線可言。
+            </p>
+          </div>
+        </div>
+
+        <div class="info-box highlight-card" style="margin-top:4px;">
+          <p style="font-size:1.1rem; color:#ffffff;">
+            ❓ <strong>大哉問</strong>：既然真實世界如此混亂、形形色色，為什麼統計學家卻能大膽地使用「常態分布」來解決幾乎所有的抽樣問題？
+          </p>
+        </div>
+      </div>
+
+      <div class="slide-footer">
+        <span>真實世界很少天生就是常態分布</span>
+        <span class="source-tag">對應 Wiki：<a href="../wiki/05-中央極限定理.md">05-中央極限定理.md</a> (來源 06)</span>
+      </div>
+    </section>
+
+    <!-- 投影片 3：直觀機制：正負偏差的對沖 -->
+    <section class="slide-card" id="slide-3">
+      <div class="slide-header">
+        <div class="slide-subtitle">01 / 直觀思考</div>
+        <h2 class="slide-title">直觀機制：隨機波動的正負對沖效應</h2>
+      </div>
+
+      <div class="slide-content">
+        <div class="info-box highlight-card">
+          <h3 style="color:#ffffff; font-size:1.25rem;">✨ 為什麼「平均數」會有規律？</h3>
+          <p style="font-size:1.05rem; line-height:1.7;">
+            如果我們每次隨機從母體中抽取 30 個數值算平均，重複進行很多次，這群<strong>平均數</strong>卻會奇蹟般地聚集成一座<strong>對稱的鐘形曲線</strong>！其背後的物理與數學哲學在於：
+          </p>
+          <ul style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
+            <li><strong>極端值的罕見性</strong>：一次抽 30 個數字，要「全部抽中極大值」或「全部抽中極小值」的機率微乎其微。</li>
+            <li><strong>正負偏差的自然對沖</strong>：在多數隨機樣本中，高於平均的值與低於平均的值會同時出現，兩者相加平均後互相牽制抵消，使結果極高機率落在中心點附近。</li>
+            <li><strong>組合數量的幾何優勢</strong>：接近中心的數值組合方式（排列組合數）遠多於兩端極端值的組合，推擠出優雅的單峰鐘形。</li>
+          </ul>
+        </div>
+
+        <div class="info-box warning-card">
+          <h3 style="color:#fde68a;">⚠️ 初學者最重要的第一道觀念防線</h3>
+          <p style="font-size:1.02rem;">
+            變常態的是「<strong>樣本平均數 $\bar{X}$ 的分布（抽樣分配）</strong>」，絕對不是「收集到的個別原始數據 $X$」！<br>
+            原始母體若是偏態，你收集 1,000 筆原始數據畫出來的直方圖依然是偏態。常態化的是「平均之後的結果」。
+          </p>
+        </div>
+      </div>
+
+      <div class="slide-footer">
+        <span>隨機變數相加的相互抵消，將混沌導向秩序</span>
+        <span class="source-tag">對應 Wiki：<a href="../wiki/05-中央極限定理.md">05-中央極限定理.md</a> (來源 06)</span>
+      </div>
+    </section>
+
+    <!-- 投影片 4：母體與樣本 -->
+    <section class="slide-card" id="slide-4">
+      <div class="slide-header">
+        <div class="slide-subtitle">02 / 基礎概念</div>
+        <h2 class="slide-title">母體與樣本：以局部推論全體的科學</h2>
+      </div>
+
+      <div class="slide-content">
+        <p style="font-size:1.05rem; color:#cbd5e1;">
+          統計學的核心使命，是在無法全面普查（成本過高或破壞性檢測）的現實限制下，從局部觀察出整體的真相。
+        </p>
+
+        <div class="grid-2">
+          <div class="info-box">
+            <h3>🌐 母體 (Population)</h3>
+            <p style="margin-bottom:8px;">研究對象的<strong>全體集合</strong>。其特徵值稱為<strong>母數 (Parameters)</strong>，是固定但未知的數值：</p>
+            <ul>
+              <li><strong>母體平均數 $\mu$</strong>：整體真實的中心位置</li>
+              <li><strong>母體標準差 $\sigma$</strong>：整體真實的散佈幅度</li>
+              <li><strong>母體變異數 $\sigma^2$</strong></li>
+            </ul>
+          </div>
+
+          <div class="info-box">
+            <h3>🔬 樣本 (Sample)</h3>
+            <p style="margin-bottom:8px;">自母體中抽取的一組<strong>觀測子集</strong>。其特徵值稱為<strong>統計量 (Statistics)</strong>，會隨抽樣隨機變動：</p>
+            <ul>
+              <li><strong>樣本容量 $n$</strong>：每次抽取的資料筆數</li>
+              <li><strong>樣本平均數 $\bar{x} = \frac{1}{n}\sum_{i=1}^n X_i$</strong></li>
+              <li><strong>樣本標準差 $s$</strong></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="info-box highlight-card">
+          <h3 style="color:#ffffff;">📌 獨立同分布假設 (i.i.d.)</h3>
+          <p style="font-size:1rem;">
+            推論統計與中央極限定理的最重要前提：抽取的每個樣本個體 $X_1, X_2, \dots, X_n$ 必須<strong>彼此互相獨立 (Independent)</strong>，且來自<strong>相同的母體機率分布 (Identically Distributed)</strong>。
+          </p>
+        </div>
+      </div>
+
+      <div class="slide-footer">
+        <span>以已知的樣本統計量，估計未知的母體參數</span>
+        <span class="source-tag">對應 Wiki：<a href="../wiki/01-母體與樣本.md">01-母體與樣本.md</a> (來源 01, 04)</span>
+      </div>
+    </section>
+
+    <!-- 投影片 5：什麼是抽樣分配？ -->
+    <section class="slide-card" id="slide-5">
+      <div class="slide-header">
+        <div class="slide-subtitle">03 / 核心機理</div>
+        <h2 class="slide-title">抽樣分配：統計量本身的機率分布</h2>
+      </div>
+
+      <div class="slide-content">
+        <div class="info-box">
+          <h3 style="font-size:1.15rem; color:#60a5fa;">💡 一個思想實驗：1,000 位獨立調查員</h3>
+          <p style="font-size:1.02rem; margin-bottom:12px;">
+            假設母體真實平均 $\mu = 50$。我們派出 1,000 位互不認識的調查員，每個人都隨機抽取 $n=50$ 筆資料並算出各自的平均數 $\bar{x}$：
+          </p>
+          <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:14px; text-align:center; margin:10px 0;">
+            <div style="background:#090d16; padding:8px 18px; border-radius:8px; border:1px solid #334155;">調查員 A：$\bar{x}_1 = 49.8$</div>
+            <div style="background:#090d16; padding:8px 18px; border-radius:8px; border:1px solid #334155;">調查員 B：$\bar{x}_2 = 50.4$</div>
+            <div style="background:#090d16; padding:8px 18px; border-radius:8px; border:1px solid #334155;">調查員 C：$\bar{x}_3 = 50.1$</div>
+            <div style="color:#60a5fa; align-self:center; font-weight:600;">...共有 1,000 個 $\bar{x}$</div>
+          </div>
+          <p style="font-size:1rem; color:#cbd5e1; margin-top:8px;">
+            每一位調查員算出的 $\bar{x}$ 都不完全一樣（這叫<strong>抽樣誤差</strong>）。如果我們把這 1,000 個 $\bar{x}$ 收集起來畫成直方圖，這個直方圖所呈現的機率分布，就叫做<strong>樣本平均數的抽樣分配 (Sampling Distribution of the Mean)</strong>。
+          </p>
+        </div>
+
+        <div class="info-box highlight-card">
+          <p style="font-size:1.05rem; color:#ffffff;">
+            🎯 <strong>核心認知</strong>：抽樣分配描述的不是個別數據，而是<strong>「統計量本身（作為隨機變數）在反覆抽樣下的機率行為」</strong>。它是整個假說檢定與信賴區間的骨幹！
+          </p>
+        </div>
+      </div>
+
+      <div class="slide-footer">
+        <span>抽樣誤差不是做錯了，而是抽樣隨機性帶來的自然波動</span>
+        <span class="source-tag">對應 Wiki：<a href="../wiki/02-抽樣分配.md">02-抽樣分配.md</a> (來源 01, 02)</span>
+      </div>
+    </section>
+
+    <!-- 投影片 6：樣本平均數的統計特性 -->
+    <section class="slide-card" id="slide-6">
+      <div class="slide-header">
+        <div class="slide-subtitle">04 / 數學特性</div>
+        <h2 class="slide-title">樣本平均數的期望值與標準誤</h2>
+      </div>
+
+      <div class="slide-content">
+        <p style="font-size:1.05rem; color:#cbd5e1;">
+          既然樣本平均數 $\bar{X} = \frac{1}{n}\sum_{i=1}^n X_i$ 是一個隨機變數，那麼它的「中心」在哪裡？它的「離散度」又有多大？
+        </p>
+
+        <div class="grid-2">
+          <div class="info-box highlight-card">
+            <h3>🎯 1. 中心不偏性 (期望值)</h3>
+            <p style="font-size:0.95rem;">
+              根據期望值的線性可加性，樣本平均數的期望值正好等於母體平均數：
+            </p>
+            <div class="math-block">$$E(\bar{X}) = \frac{1}{n}\sum_{i=1}^n E(X_i) = \frac{n\mu}{n} = \mu$$</div>
+            <p style="font-size:0.9rem; color:#93c5fd;">
+              這證明了樣本平均數是母體平均數的<strong>不偏估計量</strong>，估計中心不會產生系統性偏差。
+            </p>
+          </div>
+
+          <div class="info-box highlight-card">
+            <h3>📏 2. 離散度收斂 (標準誤)</h3>
+            <p style="font-size:0.95rem;">
+              根據獨立變數變異數的可加性，抽樣分配的標準差（稱為標準誤 SE）：
+            </p>
+            <div class="math-block">$$\sigma_{\bar{x}} = \frac{\sigma}{\sqrt{n}}$$</div>
+            <p style="font-size:0.9rem; color:#93c5fd;">
+              <strong>關鍵規律</strong>：標準誤與 $\sqrt{n}$ 成反比！若想將估計誤差減半，單次樣本容量 $n$ 必須擴充為 4 倍。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="slide-footer">
+        <span>不偏性保證準心，標準誤衡量精度</span>
+        <span class="source-tag">對應 Wiki：<a href="../wiki/03-樣本平均數.md">03-樣本平均數.md</a> (來源 02, 05)</span>
+      </div>
+    </section>
+
+    <!-- 投影片 7：大數法則 vs 中央極限定理 -->
+    <section class="slide-card" id="slide-7">
+      <div class="slide-header">
+        <div class="slide-subtitle">04 / 觀念釐清</div>
+        <h2 class="slide-title">兩大機率基石：大數法則 vs 中央極限定理</h2>
+      </div>
+
+      <div class="slide-content">
+        <div class="info-box warning-card">
+          <h3 style="color:#fde68a; font-size:1.2rem;">⚖️ 千萬不要混為一談！兩者的嚴格分工</h3>
+          <p style="font-size:1.02rem; margin-bottom:12px;">
+            初學者極易將「大數法則（LLN）」與「中央極限定理（CLT）」混淆。其實它們回答的是完全不同的問題：
+          </p>
+
+          <table style="width:100%; border-collapse:collapse; font-size:0.95rem; margin-top:8px;">
+            <tr style="border-bottom:2px solid #d97706; color:#fde68a;">
+              <th style="padding:10px; text-align:left; width:22%;">比較面向</th>
+              <th style="padding:10px; text-align:left; width:39%;">大數法則 (Law of Large Numbers)</th>
+              <th style="padding:10px; text-align:left; width:39%;">中央極限定理 (Central Limit Theorem)</th>
+            </tr>
+            <tr style="border-bottom:1px solid rgba(217,119,6,0.3);">
+              <td style="padding:10px; font-weight:700;">核心問題</td>
+              <td style="padding:10px;">「中心究竟落在何處？」</td>
+              <td style="padding:10px;">「散佈呈現何種形狀？」</td>
+            </tr>
+            <tr style="border-bottom:1px solid rgba(217,119,6,0.3);">
+              <td style="padding:10px; font-weight:700;">極限行為</td>
+              <td style="padding:10px;">隨 $n\to\infty$，$\bar{X}$ 依機率收斂至單點 $\mu$（寬度塌縮為 0）。</td>
+              <td style="padding:10px;">若放大波動尺度（標準化），其機率形態收斂為鐘形常態分布。</td>
+            </tr>
+            <tr>
+              <td style="padding:10px; font-weight:700;">直觀比喻</td>
+              <td style="padding:10px;">告訴你射箭的「<strong>靶心在哪裡</strong>」。</td>
+              <td style="padding:10px;">告訴你箭矢圍繞靶心「<strong>散落的幾何圖案</strong>」。</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="info-box" style="background:#090d16;">
+          <p style="font-size:1rem; color:#93c5fd;">
+            💡 <strong>總結</strong>：大數法則負責把平均數「吸向真實母數 $\mu$」；中央極限定理負責描繪逼近過程中的「常態鐘形曲線」。兩者互為表裡！
+          </p>
+        </div>
+      </div>
+
+      <div class="slide-footer">
+        <span>大數法則管位置，中央極限定理管形狀</span>
+        <span class="source-tag">對應 Wiki：<a href="../wiki/03-樣本平均數.md">03-樣本平均數.md</a> (來源 02, 05)</span>
+      </div>
+    </section>
+
+    <!-- 投影片 8：中央極限定理的數學陳述 -->
+    <section class="slide-card" id="slide-8">
+      <div class="slide-header">
+        <div class="slide-subtitle">05 / 理論核心</div>
+        <h2 class="slide-title">中央極限定理：定義與數學陳述</h2>
+      </div>
+
+      <div class="slide-content">
+        <div class="info-box highlight-card">
+          <h3 style="color:#ffffff; font-size:1.25rem;">📜 林德伯格－列維中央極限定理 (Lindeberg-Lévy CLT)</h3>
+          <p style="font-size:1.05rem; line-height:1.7;">
+            設 $X_1, X_2, \dots, X_n$ 為來自<strong>任意母體</strong>的獨立同分布 (i.i.d.) 隨機變數序列。<br>
+            只要母體具有<strong>有限平均數 $\mu < \infty$</strong> 與<strong>有限變異數 $0 < \sigma^2 < \infty$</strong>，則當樣本容量 $n$ 充分大時：
+          </p>
+
+          <div class="math-block" style="font-size:1.35rem; padding:16px;">
+            $$\bar{X} \sim N\left(\mu, \frac{\sigma^2}{n}\right) \quad \iff \quad Z = \frac{\bar{X} - \mu}{\frac{\sigma}{\sqrt{n}}} \xrightarrow{d} N(0, 1) \quad (\text{as } n \to \infty)$$
+          </div>
+
+          <p style="font-size:0.95rem; color:#cbd5e1; margin-top:8px;">
+            其中符號 $\xrightarrow{d}$ 代表「在分布上收斂（Convergence in Distribution）」。也就是說，其累積機率分布函數將無限逼近標準常態累積機率函數 $\Phi(z)$。
+          </p>
+        </div>
+
+        <div class="info-box">
+          <h3 style="font-size:1.1rem; color:#60a5fa;">➕ 等價形式：樣本總和的 CLT (CLT for Sums)</h3>
+          <p style="font-size:0.98rem;">
+            若不取平均而是計算累計總和 $S_n = \sum_{i=1}^n X_i$，同樣服從常態分配：
+          </p>
+          <div class="math-block">$$S_n = \sum_{i=1}^n X_i \sim N\left(n\mu, n\sigma^2\right)$$</div>
+        </div>
+      </div>
+
+      <div class="slide-footer">
+        <span>常態分布是隨機變數相加的終極吸引子 (Attractor)</span>
+        <span class="source-tag">對應 Wiki：<a href="../wiki/04-常態分配.md">04-常態分配.md</a>, <a href="../wiki/05-中央極限定理.md">05-中央極限定理.md</a> (來源 04, 05)</span>
+      </div>
+    </section>
+
+    <!-- 投影片 9：成立條件與邊界反例 -->
+    <section class="slide-card" id="slide-9">
+      <div class="slide-header">
+        <div class="slide-subtitle">05 / 理論核心</div>
+        <h2 class="slide-title">成立條件、樣本數經驗門檻與失效反例</h2>
+      </div>
+
+      <div class="slide-content">
+        <div class="grid-2">
+          <div class="info-box">
+            <h3>⚙️ 成立條件與 $n$ 的經驗門檻</h3>
+            <ul style="display:flex; flex-direction:column; gap:8px;">
+              <li><strong>獨立同分布 (i.i.d.)</strong>：抽樣個體間互不干擾。</li>
+              <li><strong>有限變異數</strong>：母體變異數必須為有限實數（$0 < \sigma^2 < \infty$）。</li>
+              <li>
+                <strong>$n \ge 30$ 經驗法則</strong>：
+                <ul>
+                  <li>若母體原本就是常態，則任意 $n \ge 1$ 平均數皆精確為常態。</li>
+                  <li>若母體溫和對稱（如均勻分布），$n = 5 \sim 10$ 即可獲得極佳近似。</li>
+                  <li>若母體極度偏斜，則需 $n \ge 30$ 甚至更大。</li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+
+          <div class="info-box warning-card">
+            <h3>🚫 CLT 的失效邊界：柯西分布反例</h3>
+            <p style="font-size:0.98rem; margin-bottom:8px;">
+              <strong>並不是所有隨機變數都能套用中央極限定理！</strong>
+            </p>
+            <p style="font-size:0.92rem; color:#fde68a; line-height:1.6;">
+              以<strong>柯西分布 (Cauchy Distribution)</strong> 為例，由於其機率密度函數的尾巴下降速度過慢（厚尾現象），其數學期望值與變異數皆<strong>不存在</strong>。<br><br>
+              若從柯西分布中抽取 $n$ 個樣本取平均，$\bar{X}$ 的分布永遠維持相同的柯西分布，<strong>永遠不會收斂成鐘形曲線</strong>！
+            </p>
+          </div>
+        </div>
+
+        <div class="info-box highlight-card" style="padding:14px 20px;">
+          <p style="font-size:0.95rem; color:#ffffff;">
+            📌 <strong>學術誠信提醒</strong>：切勿向初學者宣稱「任何母體在任何樣本數下都能得到常態分布」，必須清楚交代「有限變異數」與「充分大樣本」的邊界條件。
+          </p>
+        </div>
+      </div>
+
+      <div class="slide-footer">
+        <span>定理有其嚴謹的數學適用邊界</span>
+        <span class="source-tag">對應 Wiki：<a href="../wiki/05-中央極限定理.md">05-中央極限定理.md</a> (來源 04, 05)</span>
+      </div>
+    </section>
+
+    <!-- 投影片 10：互動視覺化實驗室 -->
+    <section class="slide-card" id="slide-10">
+      <div class="slide-header">
+        <div class="slide-subtitle">06 / 互動探索實驗室</div>
+        <h2 class="slide-title">動手驗證：抽樣分配的鐘形演化</h2>
+      </div>
+
+      <div class="slide-content">
+        <!-- 控制介面 -->
+        <div class="sim-controls">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-weight:600; color:#94a3b8;">單次樣本數 $n$：</span>
+            <div class="sim-btn-group" style="display:inline-flex;">
+              <button class="n-btn" id="btn-n-1" type="button" data-n="1" onclick="setN(1)">n = 1</button>
+              <button class="n-btn" id="btn-n-5" type="button" data-n="5" onclick="setN(5)">n = 5</button>
+              <button class="n-btn active" id="btn-n-30" type="button" data-n="30" onclick="setN(30)">n = 30</button>
+              <button class="n-btn" id="btn-n-100" type="button" data-n="100" onclick="setN(100)">n = 100</button>
+            </div>
+          </div>
+
+          <button class="action-btn" id="btn-resample" type="button" onclick="runSimulation()">🔄 重新抽樣 (重複 R = 2,500 次)</button>
+
+          <div style="color:#cbd5e1; margin-left:auto; font-size:0.88rem;">
+            母體模型：<strong>指數分布 (嚴重右偏)</strong>，理論值 $\mu=5.0, \sigma=5.0$
+          </div>
+        </div>
+
+        <!-- 圖表與統計面板 -->
+        <div class="sim-layout">
+          <!-- 左側母體圖 -->
+          <div class="canvas-container">
+            <div class="canvas-label">
+              <span>原始母體分布 (嚴重右偏)</span>
+              <span style="font-size:0.75rem; color:#f59e0b; font-weight:normal;">$\text{Exp}(\lambda=0.2)$</span>
+            </div>
+            <canvas id="popCanvas" width="240" height="190" style="width:100%; height:190px;"></canvas>
+            <div style="font-size:0.8rem; color:#94a3b8; margin-top:6px; line-height:1.4;">
+              母體絕大多數個體小於 5，少數極大值形成右側長尾。
+            </div>
+          </div>
+
+          <!-- 右側抽樣分配圖 -->
+          <div class="canvas-container">
+            <div class="canvas-label">
+              <span>樣本平均數 $\bar{X}$ 的抽樣分配 ($R = 2,500$ 次重複實驗)</span>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <span class="stat-badge">模擬平均：<strong id="statMean">-</strong></span>
+                <span class="stat-badge">模擬 SE：<strong id="statSE">-</strong></span>
+                <span class="stat-badge" style="background:rgba(2,132,199,0.25);">理論 SE ($\frac{\sigma}{\sqrt{n}}$)：<strong id="theoSE">-</strong></span>
+              </div>
+            </div>
+            <canvas id="simCanvas" width="680" height="190" style="width:100%; height:190px;"></canvas>
+          </div>
+        </div>
+
+        <!-- 即時抽樣數據面板 (直方圖下方的動態數據資訊) -->
+        <div class="sim-stats-bar" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap:12px; background:rgba(15,23,42,0.85); padding:12px 18px; border-radius:12px; border:1px solid #334155;">
+          <div style="display:flex; flex-direction:column; gap:2px;">
+            <span style="font-size:0.78rem; color:#94a3b8; font-weight:600;">當前單次抽樣數 ($n$)</span>
+            <span style="font-size:1.15rem; font-weight:700; color:#38bdf8;" id="statNVal">n = 30</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:2px;">
+            <span style="font-size:0.78rem; color:#94a3b8; font-weight:600;">模擬平均數 $\bar{\bar{X}}$ (理論 $\mu=5.0$)</span>
+            <span style="font-size:1.15rem; font-weight:700; color:#f8fafc;" id="statMeanBottom">-</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:2px;">
+            <span style="font-size:0.78rem; color:#94a3b8; font-weight:600;">模擬標準誤 (Empirical SE)</span>
+            <span style="font-size:1.15rem; font-weight:700; color:#34d399;" id="statSEBottom">-</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:2px;">
+            <span style="font-size:0.78rem; color:#94a3b8; font-weight:600;">理論標準誤 ($\sigma / \sqrt{n}$)</span>
+            <span style="font-size:1.15rem; font-weight:700; color:#60a5fa;" id="theoSEBottom">-</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:2px;">
+            <span style="font-size:0.78rem; color:#94a3b8; font-weight:600;">分配形態動態判定</span>
+            <span style="font-size:0.95rem; font-weight:700; color:#f59e0b;" id="statShape">-</span>
+          </div>
+        </div>
+
+        <!-- 觀察指引 -->
+        <div style="background:rgba(15,23,42,0.7); padding:12px 18px; border-radius:10px; border:1px solid #334155; font-size:0.92rem; color:#cbd5e1; display:flex; flex-wrap:wrap; gap:16px;">
+          <span>🔍 <strong>漸近演化觀察重點：</strong></span>
+          <span>1. $n=1$ 時抽樣分配完全繼承母體的右偏形狀</span>
+          <span>2. $n=5$ 時單峰開始明顯隆起</span>
+          <span>3. $n=30$ 時呈現對稱美麗的鐘形曲線</span>
+          <span>4. $n=100$ 時標準差大幅縮窄，緊緊凝聚在中心 $\mu=5.0$</span>
+        </div>
+      </div>
+
+      <div class="slide-footer">
+        <span>概念區分：單次樣本數 $n$（每次抽幾筆）與重複抽樣次數 $R$（做幾次實驗）</span>
+        <span class="source-tag">對應 Wiki：<a href="../wiki/02-抽樣分配.md">02-抽樣分配.md</a>, <a href="../wiki/05-中央極限定理.md">05-中央極限定理.md</a></span>
+      </div>
+    </section>
+
+    <!-- 投影片 11：實務應用（一）電梯載重安全 -->
+    <section class="slide-card" id="slide-11">
+      <div class="slide-header">
+        <div class="slide-subtitle">07 / 實務落地</div>
+        <h2 class="slide-title">實際應用（一）：電梯載重安全評估 (總和 CLT)</h2>
+      </div>
+
+      <div class="slide-content">
+        <p style="font-size:1.05rem; color:#cbd5e1;">
+          工程設計中，我們無法限制搭乘電梯的每位乘客身材體型（母體分布未知），但只要搭乘人數夠多，就能利用總和 CLT 評估超載風險！
+        </p>
+
+        <div class="grid-2">
+          <div class="info-box">
+            <h3>🏢 工程情境與參數設定</h3>
+            <ul style="display:flex; flex-direction:column; gap:8px;">
+              <li><strong>容量限制</strong>：電梯每次限乘 $n = 36$ 人。</li>
+              <li><strong>安全門檻</strong>：鋼纜總乘載上限為 $2,800\text{ kg}$。</li>
+              <li><strong>母體參數</strong>：乘客體重分布未知，但長期統計已知平均體重 $\mu = 72\text{ kg}$，標準差 $\sigma = 15\text{ kg}$。</li>
+            </ul>
+          </div>
+
+          <div class="info-box highlight-card">
+            <h3>🧮 依據總和 CLT 進行風險計算</h3>
+            <ul style="display:flex; flex-direction:column; gap:8px;">
+              <li><strong>總和期望值</strong>：$E(\Sigma X) = n\mu = 36 \times 72 = 2,592\text{ kg}$</li>
+              <li><strong>總和標準差</strong>：$\sigma_{\Sigma X} = \sqrt{n}\sigma = \sqrt{36} \times 15 = 90\text{ kg}$</li>
+              <li><strong>總和常態分布</strong>：$\Sigma X \sim N(2592, 90^2)$</li>
+              <li>
+                <strong>標準化 $Z$ 分數</strong>：
+                <div class="math-block" style="padding:6px 12px; margin:6px 0;">$$Z = \frac{2800 - 2592}{90} \approx 2.31$$</div>
+              </li>
+              <li>
+                <strong>超載機率</strong>：$P(\Sigma X > 2800) = P(Z > 2.31) \approx 1.04\%$
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="info-box" style="background:#090d16; padding:12px 18px;">
+          <p style="font-size:0.95rem; color:#38bdf8;">
+            🛡️ <strong>工程意涵</strong>：在不限制個別乘客體重的前提下，我們依然能以超過 98.9% 的信心水準確保電梯運行安全。
+          </p>
+        </div>
+      </div>
+
+      <div class="slide-footer">
+        <span>工程安全設計中樣本總和 CLT 的經典應用</span>
+        <span class="source-tag">對應 Wiki：<a href="../wiki/06-中央極限定理的應用.md">06-中央極限定理的應用.md</a> (來源 03)</span>
+      </div>
+    </section>
+
+    <!-- 投影片 12：實務應用（二）商業稽核與信賴區間 -->
+    <section class="slide-card" id="slide-12">
+      <div class="slide-header">
+        <div class="slide-subtitle">07 / 實務落地</div>
+        <h2 class="slide-title">實際應用（二）：電商退款稽核與解題決策準則</h2>
+      </div>
+
+      <div class="slide-content">
+        <div class="grid-2">
+          <div class="info-box">
+            <h3>🛍️ 商業實例：電商平台每日退款稽核</h3>
+            <p style="font-size:0.92rem; margin-bottom:8px;">
+              退款金額高度右偏（多數是小額，少數極大額），已知 $\mu = 150$ 元，$\sigma = 120$ 元。每日抽查 $n = 100$ 筆：
+            </p>
+            <ul style="font-size:0.9rem; display:flex; flex-direction:column; gap:6px;">
+              <li><strong>抽樣標準誤</strong>：$\sigma_{\bar{x}} = \frac{120}{\sqrt{100}} = 12\text{ 元}$</li>
+              <li><strong>抽查平均在 $130 \sim 170$ 元間的機率</strong>：</li>
+              <li>
+                $$Z = \frac{170 - 150}{12} \approx 1.67 \implies P(-1.67 \le Z \le 1.67) \approx 90.5\%$$
+              </li>
+              <li><strong>商業價值</strong>：若抽查平均顯著偏離此區間，系統可即刻觸發防詐欺審查。</li>
+            </ul>
+          </div>
+
+          <div class="info-box highlight-card">
+            <h3>🎯 統計解題與應用的「黃金決策指南」</h3>
+            <p style="font-size:0.95rem; margin-bottom:10px;">
+              遇到統計問題時，如何判斷該用什麼工具？
+            </p>
+            <ul style="font-size:0.92rem; display:flex; flex-direction:column; gap:8px;">
+              <li>
+                <strong>詢問單一數值 $X$</strong>：<br>
+                ❌ <strong>不可用 CLT</strong>！題目必須明確說明母體為常態分布，方能計算。
+              </li>
+              <li>
+                <strong>詢問樣本平均數 $\bar{X}$</strong>：<br>
+                ✅ <strong>使用平均數 CLT</strong>：$\bar{X} \sim N\left(\mu, \frac{\sigma^2}{n}\right)$。
+              </li>
+              <li>
+                <strong>詢問樣本總和 $\Sigma X$</strong>：<br>
+                ✅ <strong>使用總和 CLT</strong>：$\Sigma X \sim N(n\mu, n\sigma^2)$。
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="info-box warning-card" style="padding:12px 18px;">
+          <p style="font-size:0.95rem;">
+            📌 <strong>推論統計支柱</strong>：我們常用的 95% 信賴區間 $\left[\bar{x} - 1.96\frac{\sigma}{\sqrt{n}}, \; \bar{x} + 1.96\frac{\sigma}{\sqrt{n}}\right]$，正是因為中央極限定理保證了未知母體下的抽樣常態性！
+          </p>
+        </div>
+      </div>
+
+      <div class="slide-footer">
+        <span>區分個別值、平均數與總和是避免用錯統計工具的關鍵</span>
+        <span class="source-tag">對應 Wiki：<a href="../wiki/06-中央極限定理的應用.md">06-中央極限定理的應用.md</a> (來源 02, 03)</span>
+      </div>
+    </section>
+
+    <!-- 投影片 13：重點整理與觀念避坑指南 -->
+    <section class="slide-card" id="slide-13">
+      <div class="slide-header">
+        <div class="slide-subtitle">08 / 課程總結</div>
+        <h2 class="slide-title">重點整理與常見新手避坑指南</h2>
+      </div>
+
+      <div class="slide-content">
+        <div class="grid-3">
+          <div class="info-box">
+            <h3>1. 平均數必然鐘形</h3>
+            <p style="font-size:0.92rem;">
+              無論原始母體如何偏斜，只要獨立抽樣容量足夠（一般 $n \ge 30$），樣本平均數的抽樣分配必然趨向對稱的常態曲線。
+            </p>
+          </div>
+
+          <div class="info-box">
+            <h3>2. 精度縮放定律</h3>
+            <p style="font-size:0.92rem;">
+              樣本平均數的標準誤以 $\frac{\sigma}{\sqrt{n}}$ 速度縮小。抽樣越多估計越精確；想要精度加倍，樣本數需擴大四倍。
+            </p>
+          </div>
+
+          <div class="info-box">
+            <h3>3. 兩大法則分工</h3>
+            <p style="font-size:0.92rem;">
+              大數法則負責將平均數定錨於母體真實中心 $\mu$；中央極限定理負責塑造其鐘形機率幾何外觀。
+            </p>
+          </div>
+        </div>
+
+        <div class="info-box warning-card">
+          <h3 style="color:#fde68a; font-size:1.1rem; margin-bottom:8px;">⚠️ 四大常見新手誤區（必避坑）</h3>
+          <div class="grid-2" style="gap:10px 20px; font-size:0.9rem;">
+            <div>
+              <p>❌ <strong>誤解 1</strong>：樣本數很大時，抽出的數據直方圖會變常態。</p>
+              <p style="color:#93c5fd;">✅ <strong>真相</strong>：原始數據形狀不變，是「<strong>平均數</strong>」變常態。</p>
+            </div>
+            <div>
+              <p>❌ <strong>誤解 2</strong>：計算單一個人的數值機率可以用 CLT。</p>
+              <p style="color:#93c5fd;">✅ <strong>真相</strong>：CLT 僅適用於「平均數 $\bar{X}$」或「總和 $\Sigma X$」。</p>
+            </div>
+            <div>
+              <p>❌ <strong>誤解 3</strong>：任何母體只要 $n=5$ 都是常態。</p>
+              <p style="color:#93c5fd;">✅ <strong>真相</strong>：強烈偏態母體需要較大的 $n$（一般 $\ge 30$）。</p>
+            </div>
+            <div>
+              <p>❌ <strong>誤解 4</strong>：所有數學機率分布都滿足 CLT。</p>
+              <p style="color:#93c5fd;">✅ <strong>真相</strong>：母體必須具備有限變異數（柯西分布為反例）。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="slide-footer">
+        <span>恭喜完成中央極限定理的學習之旅！</span>
+        <span class="source-tag">詳細知識庫請參閱：<a href="../wiki/">CLT-Wiki 完整文章目錄</a></span>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 底部控制器 -->
+  <footer>
+    <button class="nav-btn" id="prevBtn" onclick="prevSlide()">
+      <span>◀</span> 上一頁
+    </button>
+
+    <div class="keys-hint">
+      提示：可使用鍵盤 <kbd class="kbd">←</kbd> <kbd class="kbd">→</kbd> 切換投影片
+    </div>
+
+    <button class="nav-btn" id="nextBtn" onclick="nextSlide()">
+      下一頁 <span>▶</span>
+    </button>
+  </footer>
+
+  <!-- 簡報切換與互動模擬腳本 -->
+  <script>
+    // -------------------------------------------------------------
+    // 1. MathJax 動態重新渲染輔助函式
+    // -------------------------------------------------------------
+    function retypesetMath(targetElement) {
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        if (targetElement) {
+          MathJax.typesetPromise([targetElement]).catch(err => {
+            console.log('MathJax typesetPromise warning:', err);
+          });
+        } else {
+          MathJax.typesetPromise().catch(err => {
+            console.log('MathJax typesetPromise warning:', err);
+          });
+        }
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 2. 簡報投影片導覽控制
+    // -------------------------------------------------------------
+    let currentSlide = 1;
+    const totalSlides = 13;
+
+    function updateSlideUI() {
+      let activeSlideElem = null;
+
+      // 切換投影片顯示
+      for (let i = 1; i <= totalSlides; i++) {
+        const slide = document.getElementById(`slide-${i}`);
+        if (slide) {
+          if (i === currentSlide) {
+            slide.classList.add('active');
+            activeSlideElem = slide;
+          } else {
+            slide.classList.remove('active');
+          }
+        }
+      }
+
+      // 換頁時自動滾動回頂端，確保閱讀體驗流暢
+      const mainContainer = document.getElementById('mainContainer');
+      if (mainContainer) {
+        mainContainer.scrollTop = 0;
+      }
+
+      // 更新進度文字
+      document.getElementById('slideIndicator').innerText = `第 ${currentSlide} / ${totalSlides} 頁`;
+
+      // 按鈕啟用/禁用
+      document.getElementById('prevBtn').disabled = (currentSlide === 1);
+      document.getElementById('nextBtn').disabled = (currentSlide === totalSlides);
+
+      // 觸發 MathJax 重新排版當前活動投影片
+      if (activeSlideElem) {
+        retypesetMath(activeSlideElem);
+      }
+
+      // 當進入第 10 頁（互動實驗室）時，自動觸發一次模擬繪圖
+      if (currentSlide === 10) {
+        setTimeout(runSimulation, 60);
+      }
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) {
+        currentSlide++;
+        updateSlideUI();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) {
+        currentSlide--;
+        updateSlideUI();
+      }
+    }
+
+    // 鍵盤左右方向鍵監聽
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        prevSlide();
+      }
+    });
+
+    // -------------------------------------------------------------
+    // 3. 第 10 頁互動模擬實驗室 (CLT Interactive Lab)
+    // -------------------------------------------------------------
+    let currentN = 30;
+    const REPETITIONS = 2500; // 重複抽樣次數 R (每次實驗進行 2,500 次獨立抽樣)
+    const POP_MEAN = 5.0;     // 指數分布母體期望值 mu = 1 / lambda (lambda = 0.2)
+    const POP_SD = 5.0;       // 指數分布母體標準差 sigma = 1 / lambda = 5.0
+
+    // 切換單次抽樣樣本數 n
+    function setN(n) {
+      currentN = Number(n);
+
+      // 更新按鈕 active 樣式 (依據 data-n 精確比對，避免字串包含錯誤)
+      document.querySelectorAll('#slide-10 .n-btn').forEach(btn => {
+        const btnVal = Number(btn.getAttribute('data-n'));
+        if (btnVal === currentN) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      // 立即執行模擬抽樣並繪圖
+      runSimulation();
+    }
+
+    // 指數分布隨機抽樣 (逆轉換抽樣法 Inverse Transform Sampling)
+    // 若 U ~ Uniform(0, 1)，則 X = -mu * ln(1 - U) ~ Exponential(mean = mu)
+    function sampleExponential(mu) {
+      const u = Math.random();
+      return -mu * Math.log(1 - (u === 1 ? 0.999999 : u));
+    }
+
+    // 核心模擬執行函式
+    function runSimulation() {
+      // 繪製左側母體分布圖
+      drawPopulation();
+
+      // 進行 R 次重複抽樣，每次抽樣容量為 currentN
+      const sampleMeans = new Float64Array(REPETITIONS);
+      let sumOfMeans = 0;
+
+      for (let r = 0; r < REPETITIONS; r++) {
+        let sampleSum = 0;
+        for (let i = 0; i < currentN; i++) {
+          sampleSum += sampleExponential(POP_MEAN);
+        }
+        const mean = sampleSum / currentN;
+        sampleMeans[r] = mean;
+        sumOfMeans += mean;
+      }
+
+      // 計算統計量
+      const empiricalMean = sumOfMeans / REPETITIONS;
+      let varSum = 0;
+      for (let r = 0; r < REPETITIONS; r++) {
+        const diff = sampleMeans[r] - empiricalMean;
+        varSum += diff * diff;
+      }
+      const empiricalSE = Math.sqrt(varSum / (REPETITIONS - 1));
+      const theoreticalSE = POP_SD / Math.sqrt(currentN);
+
+      // 判定分配型態描述文字
+      let shapeDesc = '';
+      if (currentN === 1) {
+        shapeDesc = '嚴重右偏 (完全繼承母體形狀)';
+      } else if (currentN === 5) {
+        shapeDesc = '中度右偏 (單峰浮現，長尾漸縮)';
+      } else if (currentN === 30) {
+        shapeDesc = '鐘形對稱 (常態近似良好，CLT成立)';
+      } else {
+        shapeDesc = '高度尖峰聚集 (SE顯著微小，極度集中)';
+      }
+
+      // 更新直方圖上方徽章
+      const statMeanEl = document.getElementById('statMean');
+      const statSEEl = document.getElementById('statSE');
+      const theoSEEl = document.getElementById('theoSE');
+      if (statMeanEl) statMeanEl.textContent = empiricalMean.toFixed(2);
+      if (statSEEl) statSEEl.textContent = empiricalSE.toFixed(2);
+      if (theoSEEl) theoSEEl.textContent = theoreticalSE.toFixed(2);
+
+      // 更新直方圖下方動態數據面板
+      const statNValEl = document.getElementById('statNVal');
+      const statMeanBottomEl = document.getElementById('statMeanBottom');
+      const statSEBottomEl = document.getElementById('statSEBottom');
+      const theoSEBottomEl = document.getElementById('theoSEBottom');
+      const statShapeEl = document.getElementById('statShape');
+
+      if (statNValEl) statNValEl.textContent = `n = ${currentN}`;
+      if (statMeanBottomEl) statMeanBottomEl.textContent = empiricalMean.toFixed(2);
+      if (statSEBottomEl) statSEBottomEl.textContent = empiricalSE.toFixed(2);
+      if (theoSEBottomEl) theoSEBottomEl.textContent = theoreticalSE.toFixed(2);
+      if (statShapeEl) statShapeEl.textContent = shapeDesc;
+
+      // 繪製右側抽樣分配直方圖
+      drawHistogram(sampleMeans, empiricalMean, empiricalSE, theoreticalSE);
+    }
+
+    // 繪製左側母體分布 (指數分布曲線)
+    function drawPopulation() {
+      const canvas = document.getElementById('popCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      // 根據容器實際寬度自適應像素解析度
+      const rect = canvas.getBoundingClientRect();
+      const w = (rect.width > 0) ? Math.floor(rect.width) : (canvas.parentElement ? canvas.parentElement.clientWidth - 32 : 240);
+      const h = 190;
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+
+      ctx.clearRect(0, 0, w, h);
+
+      const padL = 34, padR = 14, padT = 24, padB = 26;
+      const plotW = w - padL - padR;
+      const plotH = h - padT - padB;
+      const maxVal = 25; // X軸顯示範圍 0 ~ 25
+      const maxDensity = 0.22; // 指數分布在 x=0 時密度為 0.20
+
+      // 背景水平參考格線
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      for (let i = 1; i <= 3; i++) {
+        const yPos = (h - padB) - (i / 4) * plotH;
+        ctx.beginPath();
+        ctx.moveTo(padL, yPos);
+        ctx.lineTo(w - padR, yPos);
+        ctx.stroke();
+      }
+
+      // 繪製曲線下方半透明填充區
+      ctx.beginPath();
+      ctx.moveTo(padL, h - padB);
+      for (let x = 0; x <= maxVal; x += 0.2) {
+        const y = 0.2 * Math.exp(-0.2 * x);
+        const px = padL + (x / maxVal) * plotW;
+        const py = (h - padB) - (y / maxDensity) * plotH;
+        ctx.lineTo(px, py);
+      }
+      ctx.lineTo(padL + plotW, h - padB);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.18)';
+      ctx.fill();
+
+      // 繪製指數曲線 f(x) = 0.2 * e^(-0.2 * x)
+      ctx.beginPath();
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2.5;
+      for (let x = 0; x <= maxVal; x += 0.2) {
+        const y = 0.2 * Math.exp(-0.2 * x);
+        const px = padL + (x / maxVal) * plotW;
+        const py = (h - padB) - (y / maxDensity) * plotH;
+        if (x === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+
+      // 繪製真實期望值 μ = 5.0 綠色虛線
+      const meanX = padL + (POP_MEAN / maxVal) * plotW;
+      ctx.save();
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = '#22c55e';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(meanX, padT);
+      ctx.lineTo(meanX, h - padB);
+      ctx.stroke();
+      ctx.restore();
+
+      // 繪製座標軸線
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padL, padT);
+      ctx.lineTo(padL, h - padB);
+      ctx.lineTo(w - padR, h - padB);
+      ctx.stroke();
+
+      // 刻度標籤
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('0', padL, h - padB + 16);
+      ctx.fillText('10', padL + (10 / maxVal) * plotW, h - padB + 16);
+      ctx.fillText('20', padL + (20 / maxVal) * plotW, h - padB + 16);
+
+      // 母體標記
+      ctx.fillStyle = '#22c55e';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText('μ=5', meanX, h - padB + 16);
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText('母體 μ = 5.0, σ = 5.0', padL + 8, padT + 14);
+    }
+
+    // 繪製抽樣分配直方圖與常態擬合曲線
+    function drawHistogram(data, empMean, empSE, theoSE) {
+      const canvas = document.getElementById('simCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      // 根據容器實際寬度自適應像素解析度
+      const rect = canvas.getBoundingClientRect();
+      const w = (rect.width > 0) ? Math.floor(rect.width) : (canvas.parentElement ? canvas.parentElement.clientWidth - 32 : 680);
+      const h = 190;
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+
+      ctx.clearRect(0, 0, w, h);
+
+      const padL = 40, padR = 24, padT = 26, padB = 28;
+      const plotW = w - padL - padR;
+      const plotH = h - padT - padB;
+
+      // 確定 X 軸範圍 (以 5 為中心，根據不同 n 適應寬度)
+      let minX, maxX;
+      if (currentN === 1) {
+        minX = 0; maxX = 25;
+      } else if (currentN === 5) {
+        minX = 0; maxX = 12;
+      } else if (currentN === 30) {
+        minX = 1.5; maxX = 8.5;
+      } else {
+        minX = 3.0; maxX = 7.0;
+      }
+
+      const numBins = 32;
+      const binWidth = (maxX - minX) / numBins;
+      const counts = new Array(numBins).fill(0);
+
+      for (let i = 0; i < data.length; i++) {
+        const val = data[i];
+        if (val >= minX && val < maxX) {
+          const binIndex = Math.floor((val - minX) / binWidth);
+          if (binIndex >= 0 && binIndex < numBins) counts[binIndex]++;
+        }
+      }
+
+      const maxCount = Math.max(...counts, 1);
+
+      // 計算理論常態分布最高峰，避免曲線頭部被削平 (No flat-topping)
+      let peakExpected = 0;
+      if (currentN >= 5) {
+        const peakPDF = 1 / (theoSE * Math.sqrt(2 * Math.PI));
+        peakExpected = peakPDF * binWidth * REPETITIONS;
+      } else {
+        peakExpected = 0.2 * binWidth * REPETITIONS;
+      }
+      const yMax = Math.max(maxCount, peakExpected) * 1.12;
+
+      // 繪製背景水平參考線
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      for (let i = 1; i <= 4; i++) {
+        const yPos = (h - padB) - (i / 4) * plotH;
+        ctx.beginPath();
+        ctx.moveTo(padL, yPos);
+        ctx.lineTo(w - padR, yPos);
+        ctx.stroke();
+      }
+
+      // 繪製直方圖長條
+      const barPad = 1.5;
+      const pixelPerBin = plotW / numBins;
+
+      for (let i = 0; i < numBins; i++) {
+        const barH = (counts[i] / yMax) * plotH;
+        const xPos = padL + i * pixelPerBin;
+        const yPos = (h - padB) - barH;
+
+        if (currentN === 1) {
+          ctx.fillStyle = 'rgba(245, 158, 11, 0.72)'; // 橘黃色 (繼承偏斜母體)
+        } else if (currentN === 5) {
+          ctx.fillStyle = 'rgba(59, 130, 246, 0.72)';  // 藍色 (過渡期)
+        } else if (currentN === 30) {
+          ctx.fillStyle = 'rgba(56, 189, 248, 0.75)'; // 水藍色 (標準常態)
+        } else {
+          ctx.fillStyle = 'rgba(52, 211, 153, 0.8)';  // 翡翠綠 (高度集中)
+        }
+        ctx.fillRect(xPos + barPad, yPos, Math.max(1, pixelPerBin - barPad * 2), barH);
+      }
+
+      // 疊合理論常態曲線 (當 n >= 5 時)
+      if (currentN >= 5) {
+        ctx.beginPath();
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 2.5;
+
+        for (let px = 0; px <= plotW; px += 2) {
+          const xVal = minX + (px / plotW) * (maxX - minX);
+          const z = (xVal - POP_MEAN) / theoSE;
+          const pdf = (1 / (theoSE * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * z * z);
+          const expectedCount = pdf * binWidth * REPETITIONS;
+          const py = (h - padB) - (expectedCount / yMax) * plotH;
+
+          if (px === 0) ctx.moveTo(padL + px, py);
+          else ctx.lineTo(padL + px, py);
+        }
+        ctx.stroke();
+      } else {
+        // n = 1 時繪製理論指數曲線作為對照
+        ctx.save();
+        ctx.setLineDash([4, 3]);
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        for (let px = 0; px <= plotW; px += 2) {
+          const xVal = minX + (px / plotW) * (maxX - minX);
+          const pdf = 0.2 * Math.exp(-0.2 * xVal);
+          const expectedCount = pdf * binWidth * REPETITIONS;
+          const py = (h - padB) - (expectedCount / yMax) * plotH;
+          if (px === 0) ctx.moveTo(padL + px, py);
+          else ctx.lineTo(padL + px, py);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 繪製真實母體中心參考線 (x = 5.0)
+      const centerPx = padL + ((POP_MEAN - minX) / (maxX - minX)) * plotW;
+      if (centerPx >= padL && centerPx <= w - padR) {
+        ctx.save();
+        ctx.strokeStyle = '#22c55e';
+        ctx.setLineDash([4, 4]);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(centerPx, padT);
+        ctx.lineTo(centerPx, h - padB);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.fillStyle = '#22c55e';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('真實母體中心 μ = 5.0', centerPx, padT - 8);
+      }
+
+      // 坐標軸線
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padL, padT);
+      ctx.lineTo(padL, h - padB);
+      ctx.lineTo(w - padR, h - padB);
+      ctx.stroke();
+
+      // X 軸刻度文字
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(minX.toFixed(1), padL - 6, h - padB + 16);
+      ctx.textAlign = 'right';
+      ctx.fillText(maxX.toFixed(1), w - padR + 6, h - padB + 16);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#22c55e';
+      ctx.fillText('5.0', centerPx, h - padB + 16);
+
+      // 圖例註解
+      ctx.textAlign = 'left';
+      ctx.font = '11px sans-serif';
+      if (currentN >= 5) {
+        ctx.fillStyle = '#ef4444';
+        ctx.fillText('━ 紅線：CLT 理論常態曲線 N(μ, σ²/n)', padL + 8, padT + 14);
+      } else {
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillText('┅ 黃線：理論指數分布 (完全偏斜)', padL + 8, padT + 14);
+      }
+    }
+
+    // 綁定 Slide 10 控制元件事件 (DOM 載入後自動執行，支援多重保險)
+    function initSlide10Controls() {
+      // 綁定 n 值切換按鈕
+      document.querySelectorAll('#slide-10 .n-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const nVal = parseInt(btn.getAttribute('data-n'), 10);
+          if (!isNaN(nVal)) {
+            setN(nVal);
+          }
+        });
+      });
+
+      // 綁定重新抽樣按鈕
+      const resampleBtn = document.getElementById('btn-resample');
+      if (resampleBtn) {
+        resampleBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          runSimulation();
+        });
+      }
+
+      // 視窗尺寸改變時重繪 (保持清晰度)
+      window.addEventListener('resize', () => {
+        if (currentSlide === 10) {
+          runSimulation();
+        }
+      });
+    }
+
+    // 初始化載入
+    window.addEventListener('DOMContentLoaded', () => {
+      // 支援網址 Hash 跳頁 (例如 #slide-10)
+      if (window.location.hash) {
+        const m = window.location.hash.match(/\d+/);
+        if (m) {
+          const s = parseInt(m[0], 10);
+          if (s >= 1 && s <= totalSlides) {
+            currentSlide = s;
+          }
+        }
+      }
+      initSlide10Controls();
+      updateSlideUI();
+    });
+  </script>
+</body>
+</html>
